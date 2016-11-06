@@ -64,6 +64,7 @@ OPCODES = [
     Opcode(0x43, 'f32.const',             F32ConstImm()),
     Opcode(0x44, 'f64.const',             F64ConstImm()),
 
+    Opcode(0x45, 'i32.eqz',               None),
     Opcode(0x46, 'i32.eq',                None),
     Opcode(0x47, 'i32.ne',                None),
     Opcode(0x48, 'i32.lt_s',              None),
@@ -74,7 +75,7 @@ OPCODES = [
     Opcode(0x4d, 'i32.le_u',              None),
     Opcode(0x4e, 'i32.ge_s',              None),
     Opcode(0x4f, 'i32.ge_u',              None),
-
+    Opcode(0x50, 'i64.eqz',               None),
     Opcode(0x51, 'i64.eq',                None),
     Opcode(0x52, 'i64.ne',                None),
     Opcode(0x53, 'i64.lt_s',              None),
