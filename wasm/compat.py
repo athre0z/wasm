@@ -1,3 +1,4 @@
+"""Defines compatibility quirks for Python 2.7."""
 from __future__ import print_function, absolute_import, division, unicode_literals
 
 import sys
@@ -22,7 +23,7 @@ def add_metaclass(metaclass):
     return wrapper
 
 
-if sys.version_info[0] == 3:
+if sys.version_info[0] >= 3:
     def byte2int(x):
         return x
 

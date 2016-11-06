@@ -1,15 +1,30 @@
+"""Defines a simple, generic data (de)serialization mechanism."""
+
 from __future__ import print_function, absolute_import, division, unicode_literals
 
 from .compat import add_metaclass, byte2int
 import collections
 import logging
-import struct
+import struct as pystruct
 
 
 logger = logging.getLogger()
 
 
 class WasmField(object):
+    """
+    Abstract base class for all fields.
+
+    Fields are purely a (de)serialization mechanism. They don't hold the value
+    of decoded information, but take Python data-types and convert them
+    to a raw byte format or vice versa. Thus, a field instance can be reused
+    to de/encode multiple values.
+
+    Besides the abstract interface, implements type counting and IDing to allow
+    field order detection in Python 2, where `__prepare__` doesn't exist yet.
+    In order to work correctly, field instances MUST NOT be shared between
+    multiple structures using it but have to be instantiated per structure.
+    """
     _type_ctr = 0
 
     def __init__(self):
@@ -19,19 +34,17 @@ class WasmField(object):
     def from_raw(self, struct, raw):
         raise NotImplementedError()
 
-    #def to_raw(self, struct, value):
-    #    raise NotImplementedError()
-
     def to_string(self, value):
         return repr(value)
 
 
 class UIntNField(WasmField):
+    """Field handling an unsigned LE int of fixed size."""
     CONVERTER_MAP = {
-        8: struct.Struct('<B'),
-        16: struct.Struct('<H'),
-        32: struct.Struct('<I'),
-        64: struct.Struct('<Q'),
+        8: pystruct.Struct('<B'),
+        16: pystruct.Struct('<H'),
+        32: pystruct.Struct('<I'),
+        64: pystruct.Struct('<Q'),
     }
 
     def __init__(self, n):
@@ -43,18 +56,15 @@ class UIntNField(WasmField):
     def from_raw(self, struct, raw):
         return self.byte_size, self.converter.unpack(raw[:self.byte_size])[0]
 
-    #def to_raw(self, struct, value):
-    #    return value.to_bytes(self._byte_size, 'little')
-
     def to_string(self, value):
         return hex(byte2int(value) if self.n == 8 else value)
 
 
-class VarUIntNField(WasmField):
-    def __init__(self, n):
-        super(VarUIntNField, self).__init__()
-        self.n = n
-
+class UnsignedLeb128Field(WasmField):
+    """
+    Field handling unsigned LEB128 values.
+    https://en.wikipedia.org/wiki/LEB128
+    """
     def from_raw(self, struct, raw):
         offs = 0
         val = 0
@@ -72,11 +82,11 @@ class VarUIntNField(WasmField):
         return hex(value)
 
 
-class VarIntNField(WasmField):
-    def __init__(self, n):
-        super(VarIntNField, self).__init__()
-        self.n = n
-
+class SignedLeb128Field(WasmField):
+    """
+    Field handling signed LEB128 values.
+    https://en.wikipedia.org/wiki/LEB128
+    """
     def from_raw(self, struct, raw):
         offs = 0
         val = 0
@@ -96,79 +106,8 @@ class VarIntNField(WasmField):
         return offs, val
 
 
-class MetaInfo(object):
-    def __init__(self):
-        self.fields = []
-        self.data_class = None
-
-
-class StructureMeta(type):
-    def __new__(mcs, name, bases, cls_dict):
-        # Inject meta-info.
-        meta = cls_dict['_meta'] = MetaInfo()
-
-        # Iterate over fields, move relevant data to meta.
-        for cur_field_name, cur_field in list(cls_dict.items()):
-            # import inspect
-            # from pprint import pprint
-            # print(type(cur_field))
-            # pprint(inspect.getclasstree(inspect.getmro(type(cur_field))))
-
-            # Is callable, property, private or magic? We don't touch those.
-            if (
-                isinstance(cur_field, collections.Callable) or
-                isinstance(cur_field, property) or
-                cur_field_name.startswith('_')
-            ):
-                pass
-
-            # Is one of our types? Metafy.
-            elif isinstance(cur_field, WasmField):
-                meta.fields.append((cur_field_name, cur_field))
-                # del cls_dict[cur_field_name]
-
-            # Unknown type, print warning.
-            else:
-                logger.warn('Non-WasmType field "{}" found on type "{}". Ignoring.'.format(
-                    cur_field_name, name
-                ))
-
-        # As Py2 doesn't have __prepare__, we use a type counter in order to
-        # determine the field order in the class.
-        meta.fields = sorted(meta.fields, key=lambda x: x[1]._type_id)
-
-        # Create data class.
-        class StructureData(object):
-            def __init__(self):
-                for cur_field_name, cur_field in meta.fields:
-                    setattr(self, cur_field_name, None)
-
-        meta.data_class = StructureData
-        return type.__new__(mcs, name, bases, cls_dict)
-
-
-@add_metaclass(StructureMeta)
-class Structure(WasmField):
-    def from_raw(self, struct, raw):
-        offs = 0
-        data = self._meta.data_class()
-        for cur_field_name, cur_field in self._meta.fields:
-            data_len, val = cur_field.from_raw(data, raw[offs:])
-            # print('{}_len = {}'.format(cur_field_name, data_len))
-            # print('{} = {}'.format(cur_field_name, val))
-            setattr(data, cur_field_name, val)
-            offs += data_len
-        return offs, data
-
-    def to_string(self, value):
-        header = '- [ {} ] -'.format(self.__class__.__name__)
-        return '\n'.join([header] + [
-            '  | {} = {}'.format(k, v.to_string(getattr(value, k)))
-            for k, v in self._meta.fields
-        ])
-
-
 class CondField(WasmField):
+    """Optionalizes a field, depending on the context."""
     def __init__(self, field, condition):
         super(CondField, self).__init__()
         self.field = field
@@ -184,6 +123,7 @@ class CondField(WasmField):
 
 
 class RepeatField(WasmField):
+    """Repeats a field, having the repeat count depend on the context."""
     def __init__(self, field, repeat_count_getter):
         super(RepeatField, self).__init__()
         self.field = field
@@ -216,6 +156,7 @@ class RepeatField(WasmField):
 
 
 class ChoiceField(WasmField):
+    """Depending on context, either represent this or that field type."""
     def __init__(self, choice_field_map, choice_getter):
         super(ChoiceField, self).__init__()
         self.choice_field_map = choice_field_map
@@ -228,6 +169,89 @@ class ChoiceField(WasmField):
         return self.choice_field_map[choice].from_raw(struct, raw)
 
 
-class NoneField(WasmField):
+class ConstField(WasmField):
+    """Pseudo-Field, always returning a constant, consuming/generating no data."""
+    def __init__(self, const):
+        super(ConstField, self).__init__()
+        self.const = const
+
     def from_raw(self, struct, raw):
-        return 0, None
+        return 0, self.const
+
+
+class MetaInfo(object):
+    """Meta information for a `Structure`."""
+    def __init__(self):
+        self.fields = []
+        self.data_class = None
+
+
+class StructureData(object):
+    """
+    Base class for generated structure data classes. This base
+    mainly exists to give users something common to `isinstance` on.
+    """
+
+
+class StructureMeta(type):
+    """
+    Metaclass used to create `Structure` classes,
+    populating their `_meta`field and performing sanity checks.
+    """
+    def __new__(mcs, name, bases, cls_dict):
+        # Inject meta-info.
+        meta = cls_dict['_meta'] = MetaInfo()
+
+        # Iterate over fields, move relevant data to meta.
+        for cur_field_name, cur_field in list(cls_dict.items()):
+            # Is callable, property, private or magic? We don't touch those.
+            if (
+                isinstance(cur_field, collections.Callable) or
+                isinstance(cur_field, property) or
+                cur_field_name.startswith('_')
+            ):
+                pass
+
+            # Is one of our types? Metafy.
+            elif isinstance(cur_field, WasmField):
+                meta.fields.append((cur_field_name, cur_field))
+                # del cls_dict[cur_field_name]
+
+            # Unknown type, print warning.
+            else:
+                logger.warn(
+                    'Non-WasmType field "{}" found on type "{}". '
+                    'Ignoring.'.format(cur_field_name, name)
+                )
+
+        # Order fields by type ID (see `WasmField` for the "why").
+        meta.fields = sorted(meta.fields, key=lambda x: x[1]._type_id)
+
+        # Create data class.
+        class GeneratedStructureData(StructureData):
+            def __init__(self):
+                for cur_field_name, cur_field in meta.fields:
+                    setattr(self, cur_field_name, None)
+
+        meta.data_class = GeneratedStructureData
+        return type.__new__(mcs, name, bases, cls_dict)
+
+
+@add_metaclass(StructureMeta)
+class Structure(WasmField):
+    """Represents a collection of named fields."""
+    def from_raw(self, struct, raw):
+        offs = 0
+        data = self._meta.data_class()
+        for cur_field_name, cur_field in self._meta.fields:
+            data_len, val = cur_field.from_raw(data, raw[offs:])
+            setattr(data, cur_field_name, val)
+            offs += data_len
+        return offs, data
+
+    def to_string(self, value):
+        header = '- [ {} ] -'.format(self.__class__.__name__)
+        return '\n'.join([header] + [
+            '  | {} = {}'.format(k, v.to_string(getattr(value, k)))
+            for k, v in self._meta.fields
+        ])

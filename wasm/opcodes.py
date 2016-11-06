@@ -1,3 +1,4 @@
+"""Defines mappings of opcodes to their info structures."""
 from __future__ import print_function, absolute_import, division, unicode_literals
 
 from collections import namedtuple
@@ -62,7 +63,6 @@ OPCODES = [
     Opcode(0x42, 'i64.const',             I64ConstImm()),
     Opcode(0x43, 'f32.const',             F32ConstImm()),
     Opcode(0x44, 'f64.const',             F64ConstImm()),
-
 
     Opcode(0x46, 'i32.eq',                None),
     Opcode(0x47, 'i32.ne',                None),

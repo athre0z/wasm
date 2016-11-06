@@ -1,6 +1,8 @@
+"""Defines data structures used in WASM (binary) modules."""
 from __future__ import print_function, absolute_import, division, unicode_literals
 
 from .wasmtypes import *
+from .types import Structure, CondField, RepeatField, ChoiceField, WasmField, ConstField
 from .compat import byte2int
 
 
@@ -169,15 +171,15 @@ class Section(Structure):
     name = CondField(RepeatField(UInt8Field(), lambda x: x.name_len), lambda x: x.id == 0)
 
     payload = ChoiceField({
-        0: NoneField(),
+        0: ConstField(None),
         1: TypeSection(),
         2: ImportSection(),
         3: FunctionSection(),
-        4: TableSection(),  # untested
-        5: MemorySection(),  # untested
+        4: TableSection(),     # untested
+        5: MemorySection(),    # untested
         6: GlobalSection(),
         7: ExportSection(),
-        8: StartSection(),  # untested
+        8: StartSection(),     # untested
         9: ElementSection(),
         10: CodeSection(),
         11: DataSection(),

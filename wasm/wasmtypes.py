@@ -1,6 +1,7 @@
+"""Defines types used for both modules and bytecode."""
 from __future__ import print_function, absolute_import, division, unicode_literals
 
-from .types import *
+from .types import UIntNField, UnsignedLeb128Field, SignedLeb128Field
 
 
 def _make_shortcut(klass, *args, **kwargs):
@@ -12,14 +13,13 @@ UInt16Field = _make_shortcut(UIntNField, 16)
 UInt32Field = _make_shortcut(UIntNField, 32)
 UInt64Field = _make_shortcut(UIntNField, 64)
 
-VarUInt1Field = _make_shortcut(VarUIntNField, 1)
-VarUInt7Field = _make_shortcut(VarUIntNField, 7)
-VarUInt32Field = _make_shortcut(VarUIntNField, 32)
+VarUInt1Field = _make_shortcut(UnsignedLeb128Field)
+VarUInt7Field = _make_shortcut(UnsignedLeb128Field)
+VarUInt32Field = _make_shortcut(UnsignedLeb128Field)
 
-VarInt7Field = _make_shortcut(VarIntNField, 7)
-VarInt32Field = _make_shortcut(VarIntNField, 32)
-VarInt64Field = _make_shortcut(VarIntNField, 64)
-
+VarInt7Field = _make_shortcut(SignedLeb128Field)
+VarInt32Field = _make_shortcut(SignedLeb128Field)
+VarInt64Field = _make_shortcut(SignedLeb128Field)
 
 ElementTypeField = VarInt7Field
 ValueTypeField = VarInt7Field
