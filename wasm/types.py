@@ -26,15 +26,12 @@ class WasmField(object):
         return repr(value)
 
 
-def _make_shortcut(klass, *args, **kwargs):
-    return lambda: klass(*args, **kwargs)
-
-
 class UIntNField(WasmField):
     CONVERTER_MAP = {
         8: struct.Struct('<B'),
         16: struct.Struct('<H'),
         32: struct.Struct('<I'),
+        64: struct.Struct('<Q'),
     }
 
     def __init__(self, n):
@@ -51,11 +48,6 @@ class UIntNField(WasmField):
 
     def to_string(self, value):
         return hex(byte2int(value) if self.n == 8 else value)
-
-
-UInt8Field = _make_shortcut(UIntNField, 8)
-UInt16Field = _make_shortcut(UIntNField, 16)
-UInt32Field = _make_shortcut(UIntNField, 32)
 
 
 class VarUIntNField(WasmField):
@@ -80,11 +72,6 @@ class VarUIntNField(WasmField):
         return hex(value)
 
 
-VarUInt1Field = _make_shortcut(VarUIntNField, 1)
-VarUInt7Field = _make_shortcut(VarUIntNField, 7)
-VarUInt32Field = _make_shortcut(VarUIntNField, 32)
-
-
 class VarIntNField(WasmField):
     def __init__(self, n):
         super(VarIntNField, self).__init__()
@@ -107,11 +94,6 @@ class VarIntNField(WasmField):
             val -= 1 << bits
 
         return offs, val
-
-
-VarInt7Field = _make_shortcut(VarIntNField, 7)
-VarInt32Field = _make_shortcut(VarIntNField, 32)
-VarInt64Field = _make_shortcut(VarIntNField, 64)
 
 
 class MetaInfo(object):

@@ -1,12 +1,7 @@
 from __future__ import print_function, absolute_import, division, unicode_literals
 
-from .types import *
+from .wasmtypes import *
 from .compat import byte2int
-
-
-ElementType = VarInt7Field
-ValueType = VarInt7Field
-ExternalKind = UInt8Field
 
 
 class ModuleHeader(Structure):
@@ -25,7 +20,7 @@ class ResizableLimits(Structure):
 
 
 class TableType(Structure):
-    element_type = ElementType()
+    element_type = ElementTypeField()
     limits = ResizableLimits()
 
 
@@ -34,7 +29,7 @@ class MemoryType(Structure):
 
 
 class GlobalType(Structure):
-    content_type = ValueType()
+    content_type = ValueTypeField()
     mutability = VarUInt1Field()
 
 
@@ -43,7 +38,7 @@ class ImportEntry(Structure):
     module_str = RepeatField(UInt8Field(), lambda x: x.module_len)
     field_len = VarUInt32Field()
     field_str = RepeatField(UInt8Field(), lambda x: x.field_len)
-    kind = ExternalKind()
+    kind = ExternalKindField()
     type = ChoiceField({
         0: FunctionImportEntryData(),
         1: TableType(),
@@ -60,9 +55,9 @@ class ImportSection(Structure):
 class FuncType(Structure):
     form = VarInt7Field()
     param_count = VarUInt32Field()
-    param_types = RepeatField(ValueType(), lambda x: x.param_count)
+    param_types = RepeatField(ValueTypeField(), lambda x: x.param_count)
     return_count = VarUInt1Field()
-    return_type = CondField(ValueType(), lambda x: bool(x.return_count))
+    return_type = CondField(ValueTypeField(), lambda x: bool(x.return_count))
 
 
 class TypeSection(Structure):
@@ -110,7 +105,7 @@ class GlobalSection(Structure):
 class ExportEntry(Structure):
     field_len = VarUInt32Field()
     field_str = RepeatField(UInt8Field(), lambda x: x.field_len)
-    kind = ExternalKind()
+    kind = ExternalKindField()
     index = VarUInt32Field()
 
 
@@ -137,7 +132,7 @@ class ElementSection(Structure):
 
 class LocalEntry(Structure):
     count = VarUInt32Field()
-    type = ValueType()
+    type = ValueTypeField()
 
 
 class FunctionBody(Structure):
