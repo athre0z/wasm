@@ -79,7 +79,7 @@ class UnsignedLeb128Field(WasmField):
         return offs, val
 
     def to_string(self, value):
-        return hex(value)
+        return hex(value) if value > 1000 else str(value)
 
 
 class SignedLeb128Field(WasmField):

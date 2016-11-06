@@ -16,7 +16,7 @@ def decode(bytecode):
         opcode = OPCODE_MAP[opcode_id]
 
         if opcode.imm_struct is not None:
-            offs, imm = opcode.imm_struct.from_raw(None, bytecode)
+            offs, imm = opcode.imm_struct.from_raw(None, bytecode[1:])
         else:
             imm = None
             offs = 0

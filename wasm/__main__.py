@@ -28,6 +28,19 @@ else:
     ))
 
     dec = decode(bytecode)
-    for cur_insn in dec:
-        print(cur_insn.op.mnemonic)
+    depth = 0
+    for insn in dec:
+        if insn.op.mnemonic in ('end', 'return', 'else'):
+            depth -= 1
 
+        print('{}{} {}'.format(
+            ' ' * (depth * 2),
+            insn.op.mnemonic,
+            ', '.join([
+                getattr(insn.op.imm_struct, x[0]).to_string(getattr(insn.imm, x[0]))
+                for x in insn.op.imm_struct._meta.fields
+            ]) if insn.imm else ''
+        ))
+
+        if insn.op.mnemonic in ('block', 'if', 'else'):
+            depth += 1
