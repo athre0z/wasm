@@ -1,3 +1,4 @@
+"""Testing & debug stuff."""
 from __future__ import print_function, absolute_import, division, unicode_literals
 
 from .modtypes import ModuleHeader, Section, SEC_CODE
@@ -29,9 +30,8 @@ bytecode = bytearray([
     2, 127, 35, 10, 33, 130, 9,
 ])
 
-dec = decode(bytecode)
 depth = 0
-for insn in dec:
+for insn in decode(bytecode):
     if insn.op.mnemonic in ('end', 'return', 'else'):
         depth = max(0, depth - 1)
 

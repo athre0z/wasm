@@ -10,6 +10,7 @@ Instruction = namedtuple('Instruction', 'op imm')
 
 
 def decode(bytecode):
+    """Decodes raw bytecode, yielding `Instruction`s."""
     bytecode = memoryview(bytecode)
     while bytecode:
         opcode_id = byte2int(bytecode[0])

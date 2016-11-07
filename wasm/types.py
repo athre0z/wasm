@@ -1,5 +1,4 @@
 """Defines a simple, generic data (de)serialization mechanism."""
-
 from __future__ import print_function, absolute_import, division, unicode_literals
 
 from .compat import add_metaclass, byte2int
