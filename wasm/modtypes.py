@@ -164,6 +164,23 @@ class DataSection(Structure):
     entries = DataSegment()
 
 
+class LocalName(Structure):
+    local_name_len = VarUInt32Field()
+    local_name_str = RepeatField(UInt8Field(), lambda x: x.local_name_len)
+
+
+class FunctionNames(Structure):
+    fun_name_len = VarUInt32Field()
+    fun_name_str = RepeatField(UInt8Field(), lambda x: x.fun_name_len)
+    local_count = VarUInt32Field()
+    local_names = RepeatField(LocalName(), lambda x: x.local_count)
+
+
+class NameSection(Structure):
+    count = VarUInt32Field()
+    entries = RepeatField(FunctionNames(), lambda x: x.count)
+
+
 class Section(Structure):
     id = VarUInt7Field()
     payload_len = VarUInt32Field()
@@ -183,6 +200,9 @@ class Section(Structure):
         9: ElementSection(),
         10: CodeSection(),
         11: DataSection(),
+
+        # TODO:
+        'name'.encode('ascii'): NameSection(),
     }, lambda x: x.id)
 
     overhang = RepeatField(

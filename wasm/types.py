@@ -187,10 +187,10 @@ class MetaInfo(object):
 
 
 class StructureData(object):
-    """
-    Base class for generated structure data classes. This base
-    mainly exists to give users something common to `isinstance` on.
-    """
+    """Base class for generated structure data classes."""
+    def __init__(self):
+        for cur_field_name, cur_field in self._meta.fields:
+            setattr(self, cur_field_name, None)
 
 
 class StructureMeta(type):
@@ -227,13 +227,9 @@ class StructureMeta(type):
         # Order fields by type ID (see `WasmField` for the "why").
         meta.fields = sorted(meta.fields, key=lambda x: x[1]._type_id)
 
-        # Create data class.
-        class GeneratedStructureData(StructureData):
-            def __init__(self):
-                for cur_field_name, cur_field in meta.fields:
-                    setattr(self, cur_field_name, None)
+        # Create data class type for "instances".
+        meta.data_class = type(name + 'Data', (StructureData,), {'_meta': meta})
 
-        meta.data_class = GeneratedStructureData
         return type.__new__(mcs, name, bases, cls_dict)
 
 

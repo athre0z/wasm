@@ -25,3 +25,17 @@ ElementTypeField = VarInt7Field
 ValueTypeField = VarInt7Field
 ExternalKindField = UInt8Field
 BlockTypeField = VarInt7Field
+
+
+# Constants
+SEC_TYPE = 1
+SEC_IMPORT = 2
+SEC_FUNCTION = 3
+SEC_TABLE = 4
+SEC_MEMORY = 5
+SEC_GLOBAL = 6
+SEC_EXPORT = 7
+SEC_START = 8
+SEC_ELEMENT = 9
+SEC_CODE = 10
+SEC_DATA = 11
