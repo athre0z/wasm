@@ -139,12 +139,19 @@ class LocalEntry(Structure):
 
 class FunctionBody(Structure):
     body_size = VarUInt32Field()
-    pad = RepeatField(UInt8Field(), lambda x: x.body_size)
-    """
     local_count = VarUInt32Field()
-    locals = RepeatField(LocalEntry(), lambda x: x.local_count)
-    code = RepeatField(UInt8Field(), lambda x: <body_size> - <local shit>)
-    """
+    locals = RepeatField(
+        LocalEntry(),
+        lambda x: x.local_count,
+    )
+    code = RepeatField(
+        UInt8Field(),
+        lambda x: (
+            x.body_size -
+            x._data_meta['lengths']['local_count'] -
+            x._data_meta['lengths']['locals']
+        )
+    )
 
 
 class CodeSection(Structure):
@@ -184,31 +191,38 @@ class NameSection(Structure):
 class Section(Structure):
     id = VarUInt7Field()
     payload_len = VarUInt32Field()
-    name_len = CondField(VarUInt32Field(), lambda x: x.id == 0)
-    name = CondField(RepeatField(UInt8Field(), lambda x: x.name_len), lambda x: x.id == 0)
+    name_len = CondField(
+        VarUInt32Field(),
+        lambda x: x.id == 0,
+    )
+    name = CondField(
+        RepeatField(
+            UInt8Field(),
+            lambda x: x.name_len
+        ),
+        lambda x: x.id == 0,
+    )
 
     payload = ChoiceField({
-        0: ConstField(None),
-        1: TypeSection(),
-        2: ImportSection(),
-        3: FunctionSection(),
-        4: TableSection(),     # untested
-        5: MemorySection(),    # untested
-        6: GlobalSection(),
-        7: ExportSection(),
-        8: StartSection(),     # untested
-        9: ElementSection(),
-        10: CodeSection(),
-        11: DataSection(),
-
-        # TODO:
-        'name'.encode('ascii'): NameSection(),
+        SEC_UNK: ConstField(None),
+        SEC_TYPE: TypeSection(),
+        SEC_IMPORT: ImportSection(),
+        SEC_FUNCTION: FunctionSection(),
+        SEC_TABLE: TableSection(),
+        SEC_MEMORY: MemorySection(),
+        SEC_GLOBAL: GlobalSection(),
+        SEC_EXPORT: ExportSection(),
+        SEC_START: StartSection(),
+        SEC_ELEMENT: ElementSection(),
+        SEC_CODE: CodeSection(),
+        SEC_DATA: DataSection(),
     }, lambda x: x.id)
 
     overhang = RepeatField(
         UInt8Field(),
         lambda x: (
-            (x.payload_len - ((1 + len(x.name)) if x.name else 0))
+            (x.payload_len - ((x._data_meta['lengths']['name'] +
+                x._data_meta['lengths']['name_len']) if x.name else 0))
             if x.payload is None else 0
         )
     )

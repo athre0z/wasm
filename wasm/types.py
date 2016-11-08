@@ -46,13 +46,13 @@ class UIntNField(WasmField):
         64: pystruct.Struct('<Q'),
     }
 
-    def __init__(self, n):
-        super(UIntNField, self).__init__()
+    def __init__(self, n, **kwargs):
+        super(UIntNField, self).__init__(**kwargs)
         self.n = n
         self.byte_size = n // 8
         self.converter = self.CONVERTER_MAP[n]
 
-    def from_raw(self, struct, raw):
+    def from_raw(self, ctx, raw):
         return self.byte_size, self.converter.unpack(raw[:self.byte_size])[0]
 
     def to_string(self, value):
@@ -64,7 +64,7 @@ class UnsignedLeb128Field(WasmField):
     Field handling unsigned LEB128 values.
     https://en.wikipedia.org/wiki/LEB128
     """
-    def from_raw(self, struct, raw):
+    def from_raw(self, ctx, raw):
         offs = 0
         val = 0
 
@@ -86,7 +86,7 @@ class SignedLeb128Field(WasmField):
     Field handling signed LEB128 values.
     https://en.wikipedia.org/wiki/LEB128
     """
-    def from_raw(self, struct, raw):
+    def from_raw(self, ctx, raw):
         offs = 0
         val = 0
         bits = 0
@@ -107,14 +107,14 @@ class SignedLeb128Field(WasmField):
 
 class CondField(WasmField):
     """Optionalizes a field, depending on the context."""
-    def __init__(self, field, condition):
-        super(CondField, self).__init__()
+    def __init__(self, field, condition, **kwargs):
+        super(CondField, self).__init__(**kwargs)
         self.field = field
         self.condition = condition
 
-    def from_raw(self, struct, raw):
-        if self.condition(struct):
-            return self.field.from_raw(struct, raw)
+    def from_raw(self, ctx, raw):
+        if self.condition(ctx):
+            return self.field.from_raw(ctx, raw)
         return 0, None
 
     def to_string(self, value):
@@ -123,13 +123,13 @@ class CondField(WasmField):
 
 class RepeatField(WasmField):
     """Repeats a field, having the repeat count depend on the context."""
-    def __init__(self, field, repeat_count_getter):
-        super(RepeatField, self).__init__()
+    def __init__(self, field, repeat_count_getter, **kwargs):
+        super(RepeatField, self).__init__(**kwargs)
         self.field = field
         self.repeat_count_getter = repeat_count_getter
 
-    def from_raw(self, struct, raw):
-        repeat_count = self.repeat_count_getter(struct)
+    def from_raw(self, ctx, raw):
+        repeat_count = self.repeat_count_getter(ctx)
 
         # Avoiding complex processing for byte arrays.
         if type(self.field) == UIntNField and self.field.n == 8:
@@ -140,7 +140,7 @@ class RepeatField(WasmField):
         offs = 0
         items = []
         for i in range(repeat_count):
-            length, item = self.field.from_raw(struct, raw[offs:])
+            length, item = self.field.from_raw(ctx, raw[offs:])
             offs += length
             items.append(item)
 
@@ -156,25 +156,25 @@ class RepeatField(WasmField):
 
 class ChoiceField(WasmField):
     """Depending on context, either represent this or that field type."""
-    def __init__(self, choice_field_map, choice_getter):
-        super(ChoiceField, self).__init__()
+    def __init__(self, choice_field_map, choice_getter, **kwargs):
+        super(ChoiceField, self).__init__(**kwargs)
         self.choice_field_map = choice_field_map
         self.choice_getter = choice_getter
 
-    def from_raw(self, struct, raw):
-        choice = self.choice_getter(struct)
+    def from_raw(self, ctx, raw):
+        choice = self.choice_getter(ctx)
         if choice is None:
             return 0, None
-        return self.choice_field_map[choice].from_raw(struct, raw)
+        return self.choice_field_map[choice].from_raw(ctx, raw)
 
 
 class ConstField(WasmField):
     """Pseudo-Field, always returning a constant, consuming/generating no data."""
-    def __init__(self, const):
-        super(ConstField, self).__init__()
+    def __init__(self, const, **kwargs):
+        super(ConstField, self).__init__(**kwargs)
         self.const = const
 
-    def from_raw(self, struct, raw):
+    def from_raw(self, ctx, raw):
         return 0, self.const
 
 
@@ -187,7 +187,10 @@ class MetaInfo(object):
 
 class StructureData(object):
     """Base class for generated structure data classes."""
+    __slots__ = ('_meta', '_data_meta')
+
     def __init__(self):
+        self._data_meta = {'lengths': {}}
         for cur_field_name, cur_field in self._meta.fields:
             setattr(self, cur_field_name, None)
 
@@ -227,7 +230,10 @@ class StructureMeta(type):
         meta.fields = sorted(meta.fields, key=lambda x: x[1]._type_id)
 
         # Create data class type for "instances".
-        meta.data_class = type(name + 'Data', (StructureData,), {'_meta': meta})
+        class GeneratedStructureData(StructureData):
+            __slots__ = [x for x, _ in meta.fields]
+            _meta = meta
+        meta.data_class = GeneratedStructureData
 
         return type.__new__(mcs, name, bases, cls_dict)
 
@@ -235,12 +241,13 @@ class StructureMeta(type):
 @add_metaclass(StructureMeta)
 class Structure(WasmField):
     """Represents a collection of named fields."""
-    def from_raw(self, struct, raw):
+    def from_raw(self, ctx, raw):
         offs = 0
         data = self._meta.data_class()
         for cur_field_name, cur_field in self._meta.fields:
             data_len, val = cur_field.from_raw(data, raw[offs:])
             setattr(data, cur_field_name, val)
+            data._data_meta['lengths'][cur_field_name] = data_len
             offs += data_len
         return offs, data
 

@@ -5,7 +5,10 @@ from .types import UIntNField, UnsignedLeb128Field, SignedLeb128Field
 
 
 def _make_shortcut(klass, *args, **kwargs):
-    return lambda: klass(*args, **kwargs)
+    def proxy(**kwargs2):
+        kwargs.update(kwargs2)
+        return klass(*args, **kwargs)
+    return proxy
 
 
 UInt8Field = _make_shortcut(UIntNField, 8)
@@ -28,6 +31,7 @@ BlockTypeField = VarInt7Field
 
 
 # Constants
+SEC_UNK = 0
 SEC_TYPE = 1
 SEC_IMPORT = 2
 SEC_FUNCTION = 3
@@ -39,3 +43,5 @@ SEC_START = 8
 SEC_ELEMENT = 9
 SEC_CODE = 10
 SEC_DATA = 11
+
+SEC_NAME = b'name'
