@@ -4,7 +4,7 @@ from __future__ import print_function, absolute_import, division, unicode_litera
 from .modtypes import ModuleHeader, Section, SEC_CODE
 from .decode import decode
 
-for _ in range(10):
+for _ in range(1):
     with open('demo/hello/hello.wasm', 'rb') as f:
         d = memoryview(f.read())
 
