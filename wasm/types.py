@@ -178,6 +178,9 @@ class ConstField(WasmField):
         return 0, self.const
 
 
+FieldMeta = collections.namedtuple('FieldMeta', 'name field')
+
+
 class MetaInfo(object):
     """Meta information for a `Structure`."""
     def __init__(self):
@@ -216,7 +219,7 @@ class StructureMeta(type):
 
             # Is one of our types? Metafy.
             elif isinstance(cur_field, WasmField):
-                meta.fields.append((cur_field_name, cur_field))
+                meta.fields.append(FieldMeta(cur_field_name, cur_field))
                 # del cls_dict[cur_field_name]
 
             # Unknown type, print warning.
@@ -227,7 +230,7 @@ class StructureMeta(type):
                 )
 
         # Order fields by type ID (see `WasmField` for the "why").
-        meta.fields = sorted(meta.fields, key=lambda x: x[1]._type_id)
+        meta.fields = sorted(meta.fields, key=lambda x: x.field._type_id)
 
         # Create data class type for "instances".
         class GeneratedStructureData(StructureData):

@@ -1,6 +1,7 @@
 """Testing & debug stuff."""
 from __future__ import print_function, absolute_import, division, unicode_literals
 
+from wasm.formatter import format_instruction
 from .modtypes import ModuleHeader, Section, SEC_CODE
 from .decode import decode
 
@@ -22,21 +23,12 @@ for _ in range(1):
             for func in data.payload.bodies:
                 depth = 0
                 for insn in decode(func.code):
-                    """
                     if insn.op.mnemonic in ('end', 'return', 'else'):
                         depth = max(0, depth - 1)
 
-                    print('{}{} {}'.format(
-                        ' ' * (depth * 2),
-                        insn.op.mnemonic,
-                        ', '.join([
-                            getattr(insn.op.imm_struct, x[0]).to_string(getattr(insn.imm, x[0]))
-                            for x in insn.op.imm_struct._meta.fields
-                        ]) if insn.imm else ''
-                    ))
+                    print(' ' * (depth * 2) + format_instruction(insn))
 
                     if insn.op.mnemonic in ('block', 'if', 'else'):
                         depth += 1
-                    """
 
 
