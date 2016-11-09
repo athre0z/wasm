@@ -12,6 +12,10 @@ format.
 ### Installation
 
 ```
+# From PyPi
+pip install wasm
+
+# From GitHub
 pip install git+https://github.com/athre0z/wasm.git
 ```
 

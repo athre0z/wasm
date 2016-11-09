@@ -13,7 +13,7 @@ setup(
     license='MIT',
     author='Joel Höner',
     author_email='athre0z@zyantific.com',
-    description='WebAssembly decoder',
+    description='WebAssembly decoder & disassembler',
     install_requires=[
         'setuptools',
     ],
