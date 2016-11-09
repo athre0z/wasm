@@ -7,7 +7,7 @@ from .immtypes import *
 
 Opcode = namedtuple('Opcode', 'id mnemonic imm_struct flags')
 
-# Flags describing generic characteristics of
+# Flags describing generic characteristics of instructions
 INSN_ENTER_BLOCK = 1 << 0
 INSN_LEAVE_BLOCK = 1 << 1
 INSN_BRANCH = 1 << 2
