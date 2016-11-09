@@ -1,11 +1,10 @@
 """Defines a simple, generic data (de)serialization mechanism."""
 from __future__ import print_function, absolute_import, division, unicode_literals
 
-from .compat import add_metaclass, byte2int
+from .compat import add_metaclass, byte2int, indent
 import collections
 import logging
 import struct as pystruct
-import textwrap
 
 
 logger = logging.getLogger()
@@ -155,7 +154,7 @@ class RepeatField(WasmField):
         if len(value) == 0:
             return '[]'
         if isinstance(value[0], StructureData):
-            return '\n' + textwrap.indent(
+            return '\n' + indent(
                 '\n'.join(self.field.to_string(x) for x in value),
                 '  '
             )
@@ -274,7 +273,7 @@ class Structure(WasmField):
             if isinstance(field_val, StructureData):
                 lines.append('  | {} =\n{}'.format(
                     cur_field_name,
-                    textwrap.indent(field_type.to_string(field_val), '  ')
+                    indent(field_type.to_string(field_val), '  ')
                 ))
             else:
                 lines.append('  | {} = {}'.format(
