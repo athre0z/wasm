@@ -190,17 +190,6 @@ class NameSection(Structure):
     entries = RepeatField(FunctionNames(), lambda x: x.count)
 
 
-def _calc_overhang_length(ctx):
-    if ctx.payload:
-        return 0
-
-    return (
-        ctx.payload_len -
-        ctx._data_meta['lengths']['name'] -
-        ctx._data_meta['lengths']['name_len']
-    )
-
-
 class Section(Structure):
     id = VarUInt7Field()
     payload_len = VarUInt32Field()
@@ -228,4 +217,9 @@ class Section(Structure):
         SEC_DATA: DataSection(),
     }, lambda x: x.id)
 
-    overhang = BytesField(_calc_overhang_length)
+    overhang = BytesField(lambda x: max(0, (
+        x.payload_len -
+        x._data_meta['lengths']['name'] -
+        x._data_meta['lengths']['name_len'] -
+        x._data_meta['lengths']['payload']
+    )))
