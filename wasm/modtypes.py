@@ -2,8 +2,11 @@
 from __future__ import print_function, absolute_import, division, unicode_literals
 
 from .wasmtypes import *
-from .types import Structure, CondField, RepeatField, ChoiceField, WasmField, ConstField
 from .compat import byte2int
+from .types import (
+    Structure, CondField, RepeatField,
+    ChoiceField, WasmField, ConstField, BytesField,
+)
 
 
 class ModuleHeader(Structure):
@@ -37,9 +40,9 @@ class GlobalType(Structure):
 
 class ImportEntry(Structure):
     module_len = VarUInt32Field()
-    module_str = RepeatField(UInt8Field(), lambda x: x.module_len)
+    module_str = BytesField(lambda x: x.module_len, is_str=True)
     field_len = VarUInt32Field()
-    field_str = RepeatField(UInt8Field(), lambda x: x.field_len)
+    field_str = BytesField(lambda x: x.field_len, is_str=True)
     kind = ExternalKindField()
     type = ChoiceField({
         0: FunctionImportEntryData(),
@@ -106,7 +109,7 @@ class GlobalSection(Structure):
 
 class ExportEntry(Structure):
     field_len = VarUInt32Field()
-    field_str = RepeatField(UInt8Field(), lambda x: x.field_len)
+    field_str = BytesField(lambda x: x.field_len, is_str=True)
     kind = ExternalKindField()
     index = VarUInt32Field()
 
@@ -144,8 +147,7 @@ class FunctionBody(Structure):
         LocalEntry(),
         lambda x: x.local_count,
     )
-    code = RepeatField(
-        UInt8Field(),
+    code = BytesField(
         lambda x: (
             x.body_size -
             x._data_meta['lengths']['local_count'] -
@@ -163,7 +165,7 @@ class DataSegment(Structure):
     index = VarUInt32Field()
     offset = InitExpr()
     size = VarUInt32Field()
-    data = RepeatField(UInt8Field(), lambda x: x.size)
+    data = BytesField(lambda x: x.size)
 
 
 class DataSection(Structure):
@@ -173,12 +175,12 @@ class DataSection(Structure):
 
 class LocalName(Structure):
     local_name_len = VarUInt32Field()
-    local_name_str = RepeatField(UInt8Field(), lambda x: x.local_name_len)
+    local_name_str = BytesField(lambda x: x.local_name_len, is_str=True)
 
 
 class FunctionNames(Structure):
     fun_name_len = VarUInt32Field()
-    fun_name_str = RepeatField(UInt8Field(), lambda x: x.fun_name_len)
+    fun_name_str = BytesField(lambda x: x.fun_name_len, is_str=True)
     local_count = VarUInt32Field()
     local_names = RepeatField(LocalName(), lambda x: x.local_count)
 
@@ -207,10 +209,7 @@ class Section(Structure):
         lambda x: x.id == 0,
     )
     name = CondField(
-        RepeatField(
-            UInt8Field(),
-            lambda x: x.name_len
-        ),
+        BytesField(lambda x: x.name_len, is_str=True),
         lambda x: x.id == 0,
     )
 
@@ -229,4 +228,4 @@ class Section(Structure):
         SEC_DATA: DataSection(),
     }, lambda x: x.id)
 
-    overhang = RepeatField(UInt8Field(), _calc_overhang_length)
+    overhang = BytesField(_calc_overhang_length)

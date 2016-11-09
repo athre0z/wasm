@@ -188,6 +188,22 @@ class ChoiceField(WasmField):
         return self.choice_field_map[choice].from_raw(ctx, raw)
 
 
+class BytesField(RepeatField):
+    """Shorthand for U8 `RepeatField`, adding string support."""
+    def __init__(self, length_getter, is_str=False):
+        super(BytesField, self).__init__(UIntNField(8), length_getter)
+        self.is_str = is_str
+
+    def to_string(self, value):
+        if not self.is_str:
+            return super(BytesField, self).to_string(value)
+
+        try:
+            return '"' + bytearray(value).decode('utf8') + '"'
+        except UnicodeDecodeError:
+            return '<bad utf8>'
+
+
 FieldMeta = collections.namedtuple('FieldMeta', 'name field')
 
 
