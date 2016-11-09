@@ -91,7 +91,7 @@ class InitExpr(WasmField):
             offs += 1
             if byte2int(raw[offs - 1]) == 0x0b:
                 break
-        return offs, None
+        return offs, None, self
 
 
 class GlobalEntry(Structure):
@@ -168,7 +168,7 @@ class DataSegment(Structure):
 
 class DataSection(Structure):
     count = VarUInt32Field()
-    entries = DataSegment()
+    entries = RepeatField(DataSegment(), lambda x: x.count)
 
 
 class LocalName(Structure):

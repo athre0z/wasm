@@ -5,6 +5,7 @@ from .compat import add_metaclass, byte2int
 import collections
 import logging
 import struct as pystruct
+import textwrap
 
 
 logger = logging.getLogger()
@@ -53,7 +54,7 @@ class UIntNField(WasmField):
         self.converter = self.CONVERTER_MAP[n]
 
     def from_raw(self, ctx, raw):
-        return self.byte_size, self.converter.unpack(raw[:self.byte_size])[0]
+        return self.byte_size, self.converter.unpack(raw[:self.byte_size])[0], self
 
     def to_string(self, value):
         return hex(byte2int(value) if self.n == 8 else value)
@@ -75,7 +76,7 @@ class UnsignedLeb128Field(WasmField):
             if not (segment & 0x80):
                 break
 
-        return offs, val
+        return offs, val, self
 
     def to_string(self, value):
         return hex(value) if value > 1000 else str(value)
@@ -102,7 +103,7 @@ class SignedLeb128Field(WasmField):
         if val & (1 << (bits - 1)):
             val -= 1 << bits
 
-        return offs, val
+        return offs, val, self
 
 
 class CondField(WasmField):
@@ -115,7 +116,7 @@ class CondField(WasmField):
     def from_raw(self, ctx, raw):
         if self.condition(ctx):
             return self.field.from_raw(ctx, raw)
-        return 0, None
+        return 0, None, self
 
     def to_string(self, value):
         return 'None' if value is None else self.field.to_string(value)
@@ -133,39 +134,33 @@ class RepeatField(WasmField):
 
         # Avoiding complex processing for byte arrays.
         if type(self.field) == UIntNField and self.field.n == 8:
-            return repeat_count, raw[:repeat_count]
+            return repeat_count, raw[:repeat_count], self
 
         # For more complex types, invoke the field for parsing the
         # individual fields.
         offs = 0
         items = []
         for i in range(repeat_count):
-            length, item = self.field.from_raw(ctx, raw[offs:])
+            length, item, element_type = self.field.from_raw(ctx, raw[offs:])
             offs += length
             items.append(item)
 
-        return offs, items
+        return offs, items, self
 
     def to_string(self, value):
         if value is None:
-            return None
+            return 'None'
         if len(value) > 100:
             return '<too long>'
-        return '[' + ', '.join(self.field.to_string(x) for x in value) + ']'
-
-
-class ChoiceField(WasmField):
-    """Depending on context, either represent this or that field type."""
-    def __init__(self, choice_field_map, choice_getter, **kwargs):
-        super(ChoiceField, self).__init__(**kwargs)
-        self.choice_field_map = choice_field_map
-        self.choice_getter = choice_getter
-
-    def from_raw(self, ctx, raw):
-        choice = self.choice_getter(ctx)
-        if choice is None:
-            return 0, None
-        return self.choice_field_map[choice].from_raw(ctx, raw)
+        if len(value) == 0:
+            return '[]'
+        if isinstance(value[0], StructureData):
+            return '\n' + textwrap.indent(
+                '\n'.join(self.field.to_string(x) for x in value),
+                '  '
+            )
+        else:
+            return '[' + ', '.join(self.field.to_string(x) for x in value) + ']'
 
 
 class ConstField(WasmField):
@@ -175,7 +170,23 @@ class ConstField(WasmField):
         self.const = const
 
     def from_raw(self, ctx, raw):
-        return 0, self.const
+        return 0, self.const, self
+
+
+class ChoiceField(WasmField):
+    """Depending on context, either represent this or that field type."""
+    _shared_none_field = ConstField(None)
+
+    def __init__(self, choice_field_map, choice_getter, **kwargs):
+        super(ChoiceField, self).__init__(**kwargs)
+        self.choice_field_map = choice_field_map
+        self.choice_getter = choice_getter
+
+    def from_raw(self, ctx, raw):
+        choice = self.choice_getter(ctx)
+        if choice is None:
+            return 0, None, self._shared_none_field
+        return self.choice_field_map[choice].from_raw(ctx, raw)
 
 
 FieldMeta = collections.namedtuple('FieldMeta', 'name field')
@@ -193,7 +204,7 @@ class StructureData(object):
     __slots__ = ('_meta', '_data_meta')
 
     def __init__(self):
-        self._data_meta = {'lengths': {}}
+        self._data_meta = {'lengths': {}, 'types': {}}
         for cur_field_name, cur_field in self._meta.fields:
             setattr(self, cur_field_name, None)
 
@@ -248,15 +259,27 @@ class Structure(WasmField):
         offs = 0
         data = self._meta.data_class()
         for cur_field_name, cur_field in self._meta.fields:
-            data_len, val = cur_field.from_raw(data, raw[offs:])
+            data_len, val, data_type = cur_field.from_raw(data, raw[offs:])
             setattr(data, cur_field_name, val)
             data._data_meta['lengths'][cur_field_name] = data_len
+            data._data_meta['types'][cur_field_name] = data_type
             offs += data_len
-        return offs, data
+        return offs, data, self
 
     def to_string(self, value):
-        header = '- [ {} ] -'.format(self.__class__.__name__)
-        return '\n'.join([header] + [
-            '  | {} = {}'.format(k, v.to_string(getattr(value, k)))
-            for k, v in self._meta.fields
-        ])
+        lines = ['- [ {}'.format(self.__class__.__name__)]
+        for cur_field_name, cur_field in self._meta.fields:
+            field_val = getattr(value, cur_field_name)
+            field_type = value._data_meta['types'][cur_field_name]
+            if isinstance(field_val, StructureData):
+                lines.append('  | {} =\n{}'.format(
+                    cur_field_name,
+                    textwrap.indent(field_type.to_string(field_val), '  ')
+                ))
+            else:
+                lines.append('  | {} = {}'.format(
+                    cur_field_name,
+                    field_type.to_string(field_val)
+                ))
+
+        return '\n'.join(lines)
