@@ -8,6 +8,8 @@ setup(
     version='1.0',
     packages=['wasm'],
     url='https://github.com/athre0z/wasm',
+    download_url='https://github.com/athre0z/wasm/archive/v0.1.tar.gz',
+    keywords=['wasm', 'disassembler', 'decoder'],
     license='MIT',
     author='Joel Höner',
     author_email='athre0z@zyantific.com',
