@@ -7,7 +7,7 @@ from .opcodes import OPCODE_MAP
 from .compat import byte2int
 
 
-Instruction = namedtuple('Instruction', 'op imm')
+Instruction = namedtuple('Instruction', 'op imm len')
 ModuleFragment = namedtuple('ModuleFragment', 'type data')
 
 
@@ -24,8 +24,9 @@ def decode_bytecode(bytecode):
             imm = None
             offs = 0
 
-        yield Instruction(opcode, imm)
-        bytecode_wnd = bytecode_wnd[1 + offs:]
+        insn_len = 1 + offs
+        yield Instruction(opcode, imm, insn_len)
+        bytecode_wnd = bytecode_wnd[insn_len:]
 
 
 def decode_module(module):

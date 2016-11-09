@@ -2,7 +2,7 @@
 from __future__ import print_function, absolute_import, division, unicode_literals
 
 from .wasmtypes import *
-from .compat import byte2int
+from .opcodes import OP_END
 from .types import (
     Structure, CondField, RepeatField,
     ChoiceField, WasmField, ConstField, BytesField,
@@ -86,14 +86,15 @@ class MemorySection(Structure):
 
 
 class InitExpr(WasmField):
-    # TODO
-
     def from_raw(self, struct, raw):
+        from .decode import decode_bytecode
+
         offs = 0
-        while True:
-            offs += 1
-            if byte2int(raw[offs - 1]) == 0x0b:
+        for cur_insn in decode_bytecode(raw):
+            offs += cur_insn.len
+            if cur_insn.op.id == OP_END:
                 break
+
         return offs, None, self
 
 
