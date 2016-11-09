@@ -1,7 +1,8 @@
 """Testing & debug stuff."""
 from __future__ import print_function, absolute_import, division, unicode_literals
 
-from wasm.formatter import format_instruction
+from .formatter import format_instruction
+from .opcodes import INSN_ENTER_BLOCK, INSN_LEAVE_BLOCK, OP_CALL
 from .modtypes import ModuleHeader, Section, SEC_CODE
 from .decode import decode
 
@@ -20,15 +21,19 @@ for _ in range(1):
         offs += size
 
         if data.id == SEC_CODE:
-            for func in data.payload.bodies:
-                depth = 0
+            for i, func in enumerate(data.payload.bodies):
+                depth = 1
+                print('{x} sub_{id:04X} {x}'.format(x='=' * 35, id=i))
                 for insn in decode(func.code):
-                    if insn.op.mnemonic in ('end', 'return', 'else'):
-                        depth = max(0, depth - 1)
+                    if insn.op.flags & INSN_LEAVE_BLOCK:
+                        depth -= 1
+
+                    if insn.op.id == OP_CALL:
+                        pass
 
                     print(' ' * (depth * 2) + format_instruction(insn))
 
-                    if insn.op.mnemonic in ('block', 'if', 'else'):
+                    if insn.op.flags & INSN_ENTER_BLOCK:
                         depth += 1
 
 
