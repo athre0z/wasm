@@ -5,7 +5,7 @@ import argparse
 import sys
 
 from .formatter import format_instruction
-from .opcodes import INSN_ENTER_BLOCK, INSN_LEAVE_BLOCK, OP_CALL
+from .opcodes import INSN_ENTER_BLOCK, INSN_LEAVE_BLOCK
 from .modtypes import SEC_CODE
 from .decode import decode_bytecode, decode_module
 
@@ -37,9 +37,6 @@ def dump():
                 for insn in decode_bytecode(func.code):
                     if insn.op.flags & INSN_LEAVE_BLOCK:
                         depth -= 1
-
-                    if insn.op.id == OP_CALL:
-                        pass
 
                     print(' ' * (depth * 2) + format_instruction(insn))
 

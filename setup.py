@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='wasm',
-    version='1.0b0',
+    version='1.0',
     packages=['wasm'],
     url='https://github.com/athre0z/wasm',
     license='MIT',
