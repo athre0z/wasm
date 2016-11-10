@@ -32,7 +32,7 @@ mod_iter = iter(decode_module(raw))
 header, header_data = next(mod_iter)
 
 for cur_sec, cur_sec_data in mod_iter:
-    print(cur_sec_data._data_meta['types']['payload'])
+    print(cur_sec_data.get_decoder_meta()['types']['payload'])
 ```
 
 Possible output:

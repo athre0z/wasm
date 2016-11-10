@@ -212,16 +212,34 @@ class MetaInfo(object):
     def __init__(self):
         self.fields = []
         self.data_class = None
+        self.structure = None
 
 
 class StructureData(object):
     """Base class for generated structure data classes."""
-    __slots__ = ('_meta', '_data_meta')
+    __slots__ = ('_meta', '_decoder_meta')
 
-    def __init__(self):
-        self._data_meta = {'lengths': {}, 'types': {}}
+    def __init__(self, for_decoding=False):
+        self._decoder_meta = {'lengths': {}, 'types': {}} if for_decoding else None
         for cur_field_name, cur_field in self._meta.fields:
             setattr(self, cur_field_name, None)
+
+    def get_meta(self):
+        """
+        Obtains meta info for this object. The object returned is shared
+        between all objects of the same structure type.
+
+        A getter is utilized here instead of a property to allow strict
+        distinction of meta info from regular fields.
+        """
+        return self._meta
+
+    def get_decoder_meta(self):
+        """
+        Obtains meta info from the decoder, like byte length in raw format.
+        For objects not created through decoding, `None` is returned.
+        """
+        return self._decoder_meta
 
 
 class StructureMeta(type):
@@ -230,7 +248,7 @@ class StructureMeta(type):
     populating their `_meta`field and performing sanity checks.
     """
     def __new__(mcs, name, bases, cls_dict):
-        # Inject meta-info.
+        # Inject _meta.
         meta = cls_dict['_meta'] = MetaInfo()
 
         # Iterate over fields, move relevant data to meta.
@@ -246,12 +264,11 @@ class StructureMeta(type):
             # Is one of our types? Metafy.
             elif isinstance(cur_field, WasmField):
                 meta.fields.append(FieldMeta(cur_field_name, cur_field))
-                # del cls_dict[cur_field_name]
 
             # Unknown type, print warning.
             else:
                 logger.warn(
-                    'Non-WasmType field "{}" found on type "{}". '
+                    'Non-WasmField typed field "{}" found on type "{}". '
                     'Ignoring.'.format(cur_field_name, name)
                 )
 
@@ -264,7 +281,9 @@ class StructureMeta(type):
             _meta = meta
         meta.data_class = GeneratedStructureData
 
-        return type.__new__(mcs, name, bases, cls_dict)
+        # Create class, saving type ref in meta.
+        meta.structure = type.__new__(mcs, name, bases, cls_dict)
+        return meta.structure
 
 
 @add_metaclass(StructureMeta)
@@ -272,12 +291,13 @@ class Structure(WasmField):
     """Represents a collection of named fields."""
     def from_raw(self, ctx, raw):
         offs = 0
-        data = self._meta.data_class()
+        data = self._meta.data_class(for_decoding=True)
         for cur_field_name, cur_field in self._meta.fields:
             data_len, val, data_type = cur_field.from_raw(data, raw[offs:])
             setattr(data, cur_field_name, val)
-            data._data_meta['lengths'][cur_field_name] = data_len
-            data._data_meta['types'][cur_field_name] = data_type
+            decoder_meta = data.get_decoder_meta()
+            decoder_meta['lengths'][cur_field_name] = data_len
+            decoder_meta['types'][cur_field_name] = data_type
             offs += data_len
         return offs, data, self
 
@@ -285,7 +305,7 @@ class Structure(WasmField):
         lines = ['- [ {}'.format(self.__class__.__name__)]
         for cur_field_name, cur_field in self._meta.fields:
             field_val = getattr(value, cur_field_name)
-            field_type = value._data_meta['types'][cur_field_name]
+            field_type = value.get_decoder_meta()['types'][cur_field_name]
             if isinstance(field_val, StructureData):
                 lines.append('  | {} =\n{}'.format(
                     cur_field_name,

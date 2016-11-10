@@ -151,8 +151,8 @@ class FunctionBody(Structure):
     code = BytesField(
         lambda x: (
             x.body_size -
-            x._data_meta['lengths']['local_count'] -
-            x._data_meta['lengths']['locals']
+            x.get_decoder_meta()['lengths']['local_count'] -
+            x.get_decoder_meta()['lengths']['locals']
         )
     )
 
@@ -220,7 +220,7 @@ class Section(Structure):
 
     overhang = BytesField(lambda x: max(0, (
         x.payload_len -
-        x._data_meta['lengths']['name'] -
-        x._data_meta['lengths']['name_len'] -
-        x._data_meta['lengths']['payload']
+        x.get_decoder_meta()['lengths']['name'] -
+        x.get_decoder_meta()['lengths']['name_len'] -
+        x.get_decoder_meta()['lengths']['payload']
     )))
