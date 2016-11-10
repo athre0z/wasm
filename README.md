@@ -25,7 +25,7 @@ Parsing a WASM module, printing the types of sections found.
 ```python
 from wasm.decode import decode_module
 
-with open('demo/hello/hello.wasm', 'rb') as raw:
+with open('input-samples/hello/hello.wasm', 'rb') as raw:
     raw = raw.read()
     
 mod_iter = iter(decode_module(raw))
