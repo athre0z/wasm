@@ -1,7 +1,7 @@
 """Defines a simple, generic data (de)serialization mechanism."""
 from __future__ import print_function, absolute_import, division, unicode_literals
 
-from .compat import add_metaclass, byte2int, indent
+from .compat import add_metaclass, byte2int, indent, deprecated_func
 import collections
 import logging
 import struct as pystruct
@@ -241,6 +241,12 @@ class StructureData(object):
         """
         return self._decoder_meta
 
+    @property
+    @deprecated_func
+    def _data_meta(self):
+        """Property emulating old name of `_decoder_meta`. Deprecated, do not use."""
+        return self._decoder_meta
+
 
 class StructureMeta(type):
     """
@@ -267,7 +273,7 @@ class StructureMeta(type):
 
             # Unknown type, print warning.
             else:
-                logger.warn(
+                logger.warning(
                     'Non-WasmField typed field "{}" found on type "{}". '
                     'Ignoring.'.format(cur_field_name, name)
                 )
