@@ -4,10 +4,9 @@ from __future__ import print_function, absolute_import, division, unicode_litera
 import argparse
 import sys
 
-from .formatter import format_instruction
-from .opcodes import INSN_ENTER_BLOCK, INSN_LEAVE_BLOCK
-from .modtypes import SEC_CODE
-from .decode import decode_bytecode, decode_module
+from .formatter import format_function
+from .modtypes import SEC_CODE, SEC_TYPE, SEC_FUNCTION, Section
+from .decode import decode_module
 
 
 def dump():
@@ -23,22 +22,36 @@ def dump():
         print("[-] Can't open input file: " + str(exc), file=sys.stderr)
         return
 
-    mod_iter = iter(decode_module(raw))
+    # Parse & print header.
+    mod_iter = iter(decode_module(raw, decode_name_subsections=False))
     hdr, hdr_data = next(mod_iter)
     print(hdr.to_string(hdr_data))
 
+    # Parse & print other sections.
+    code_sec = None
+    type_sec = None
+    func_sec = None
     for cur_sec, cur_sec_data in mod_iter:
         print(cur_sec.to_string(cur_sec_data))
+        if type(cur_sec) == Section:
+            if cur_sec_data.id == SEC_CODE:
+                code_sec = cur_sec_data.payload
+            elif cur_sec_data.id == SEC_TYPE:
+                type_sec = cur_sec_data.payload
+            elif cur_sec_data.id == SEC_FUNCTION:
+                func_sec = cur_sec_data.payload
 
-        if args.disas and cur_sec_data.id == SEC_CODE:
-            for i, func in enumerate(cur_sec_data.payload.bodies):
-                depth = 1
-                print('{x} sub_{id:04X} {x}'.format(x='=' * 35, id=i))
-                for insn in decode_bytecode(func.code):
-                    if insn.op.flags & INSN_LEAVE_BLOCK:
-                        depth -= 1
+    # If ordered to disassemble, do so.
+    # TODO: We might want to make use of debug names, if available.
+    if args.disas and code_sec is not None:
+        for i, func_body in enumerate(code_sec.bodies):
+            print('{x} sub_{id:04X} {x}'.format(x='=' * 35, id=i))
 
-                    print(' ' * (depth * 2) + format_instruction(insn))
+            # If we have type info, use it.
+            func_type = type_sec.entries[func_sec.types[i]] if (
+                None not in (type_sec, func_sec)
+            ) else None
 
-                    if insn.op.flags & INSN_ENTER_BLOCK:
-                        depth += 1
+            print()
+            print('\n'.join(format_function(func_body, func_type)))
+            print()

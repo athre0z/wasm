@@ -174,21 +174,34 @@ class DataSection(Structure):
     entries = RepeatField(DataSegment(), lambda x: x.count)
 
 
-class LocalName(Structure):
-    local_name_len = VarUInt32Field()
-    local_name_str = BytesField(lambda x: x.local_name_len, is_str=True)
+class Naming(Structure):
+    index = VarUInt32Field()
+    name_len = VarUInt32Field()
+    name_str = BytesField(lambda x: x.name_len, is_str=True)
 
 
-class FunctionNames(Structure):
-    fun_name_len = VarUInt32Field()
-    fun_name_str = BytesField(lambda x: x.fun_name_len, is_str=True)
-    local_count = VarUInt32Field()
-    local_names = RepeatField(LocalName(), lambda x: x.local_count)
-
-
-class NameSection(Structure):
+class NameMap(Structure):
     count = VarUInt32Field()
-    entries = RepeatField(FunctionNames(), lambda x: x.count)
+    names = RepeatField(Naming(), lambda x: x.count)
+
+
+class LocalNames(Structure):
+    index = VarUInt32Field()
+    local_map = NameMap()
+
+
+class LocalNameMap(Structure):
+    count = VarUInt32Field()
+    funcs = RepeatField(LocalNames, lambda x: x.count)
+
+
+class NameSubSection(Structure):
+    name_type = VarUInt7Field()
+    payload_len = VarUInt32Field()
+    payload = ChoiceField({
+        NAME_SUBSEC_FUNCTION: NameMap(),
+        NAME_SUBSEC_LOCAL: LocalNameMap(),
+    }, lambda x: x.name_type)
 
 
 class Section(Structure):
@@ -204,7 +217,7 @@ class Section(Structure):
     )
 
     payload = ChoiceField({
-        SEC_UNK: ConstField(None),
+        SEC_UNK: BytesField(lambda x: x.payload_len),
         SEC_TYPE: TypeSection(),
         SEC_IMPORT: ImportSection(),
         SEC_FUNCTION: FunctionSection(),

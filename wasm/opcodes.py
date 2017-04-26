@@ -200,7 +200,6 @@ OPCODES = [
 
 OPCODE_MAP = {x.id: x for x in OPCODES}
 
-
 # Generate integer constants for opcodes.
 for cur_op in OPCODES:
     globals()[

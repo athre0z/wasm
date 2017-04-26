@@ -1,13 +1,14 @@
 wasm
 ====
 
-Python module capable of decoding and disassembling WebAssembly modules and
-bytecode, according to the preliminary specification of the WASM binary format 
-(preview version 0xD).
-
-As there is no official text format defined yet, the text format implemented doesn't 
-correspond to any existing definition and is a simple  `mnemonic op1, op2, ...` 
+Python module capable of decoding and disassembling WebAssembly modules 
+and bytecode, according to the MVP specification of the WASM binary
 format.
+
+As there is no official text format defined yet, the text format 
+implemented doesn't correspond to any existing definition and is a 
+simple `mnemonic op1, op2, ...` format. Functions are formatted in a
+way similar to how Google Chrome does in the debug console.
 
 ### Installation
 
@@ -47,14 +48,14 @@ Possible output:
 <wasm.modtypes.DataSection object at 0x10dec5518>
 ```
 
-Disassemble WASM bytecode, printing each instruction.
+Manually disassemble WASM bytecode, printing each instruction.
 ```python
 from wasm.decode import decode_bytecode
 from wasm.formatter import format_instruction
 from wasm.opcodes import INSN_ENTER_BLOCK, INSN_LEAVE_BLOCK
 
-raw = bytearray([2, 127, 65, 24, 16, 28, 65, 0, 15, 11, 11])
-indent = 1
+raw = bytearray([2, 127, 65, 24, 16, 28, 65, 0, 15, 11])
+indent = 0
 for cur_insn in decode_bytecode(raw):
     if cur_insn.op.flags & INSN_LEAVE_BLOCK:
         indent -= 1
@@ -65,19 +66,19 @@ for cur_insn in decode_bytecode(raw):
 
 Output:
 ```
-  block -1
-    i32.const 24
-    call 28
-    i32.const 0
-    return
-  end
+block -1
+  i32.const 24
+  call 28
+  i32.const 0
+  return
 end
 ```
 
 ### `wasmdump` command-line tool
 The module also comes with a simple command-line tool called `wasmdump`, 
-dumping all module struct in sexy tree format. Optionally, it also disassembles
-all functions found when invoked with `--disas` (slow).
+dumping all module struct in sexy tree format. Optionally, it also 
+disassembles all functions found when invoked with `--disas` (slow).
 
 ### Version support
-The library was successfully tested on Python 2.7, Python 3.5 and PyPy 5.4.
+The library was successfully tested on Python 2.7, Python 3.5 and 
+PyPy 5.4.

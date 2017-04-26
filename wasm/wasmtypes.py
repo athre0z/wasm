@@ -30,7 +30,12 @@ ExternalKindField = UInt8Field
 BlockTypeField = VarInt7Field
 
 
+#
 # Constants
+#
+
+
+# Section types.
 SEC_UNK = 0
 SEC_TYPE = 1
 SEC_IMPORT = 2
@@ -43,5 +48,23 @@ SEC_START = 8
 SEC_ELEMENT = 9
 SEC_CODE = 10
 SEC_DATA = 11
-
 SEC_NAME = b'name'
+
+# Language types.
+LANG_TYPE_I32 = -0x01
+LANG_TYPE_I64 = -0x02
+LANG_TYPE_F32 = -0x03
+LANG_TYPE_F64 = -0x04
+LANG_TYPE_ANYFUNC = -0x10
+LANG_TYPE_FUNC = -0x20
+LANG_TYPE_EMPTY = -0x40
+
+# Value types.
+VAL_TYPE_I32 = LANG_TYPE_I32
+VAL_TYPE_I64 = LANG_TYPE_I64
+VAL_TYPE_F32 = LANG_TYPE_F32
+VAL_TYPE_F64 = LANG_TYPE_F64
+
+# Name subsection types.
+NAME_SUBSEC_FUNCTION = 1
+NAME_SUBSEC_LOCAL = 2
