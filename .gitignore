@@ -145,3 +145,5 @@ fabric.properties
 # .idea/misc.xml 
 # *.ipr
 /.idea
+
+.DS_Store
