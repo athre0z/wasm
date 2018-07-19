@@ -219,7 +219,11 @@ class Section(Structure):
     )
 
     payload = ChoiceField({
-        SEC_UNK: BytesField(lambda x: x.payload_len),
+        SEC_UNK: BytesField(lambda x: (
+            x.payload_len -
+            x.get_decoder_meta()['lengths']['name'] -
+            x.get_decoder_meta()['lengths']['name_len']
+        )),
         SEC_TYPE: TypeSection(),
         SEC_IMPORT: ImportSection(),
         SEC_FUNCTION: FunctionSection(),
