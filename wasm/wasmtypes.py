@@ -68,3 +68,7 @@ VAL_TYPE_F64 = LANG_TYPE_F64
 # Name subsection types.
 NAME_SUBSEC_FUNCTION = 1
 NAME_SUBSEC_LOCAL = 2
+
+# Mutability in global types.
+IMMUTABLE = 0
+MUTABLE = 1
