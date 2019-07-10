@@ -251,7 +251,7 @@ class StructureData(object):
 class StructureMeta(type):
     """
     Metaclass used to create `Structure` classes,
-    populating their `_meta`field and performing sanity checks.
+    populating their `_meta` field and performing sanity checks.
     """
     def __new__(mcs, name, bases, cls_dict):
         # Inject _meta.

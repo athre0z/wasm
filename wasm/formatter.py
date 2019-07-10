@@ -5,7 +5,7 @@ import itertools
 
 from .opcodes import INSN_LEAVE_BLOCK, INSN_ENTER_BLOCK
 from .decode import decode_bytecode
-from .wasmtypes import VAL_TYPE_I32, VAL_TYPE_I64, VAL_TYPE_F32, VAL_TYPE_F64
+from .wasmtypes import VAL_TYPE_I32, VAL_TYPE_I64, VAL_TYPE_F32, VAL_TYPE_F64, MUTABLE, IMMUTABLE
 
 
 def format_instruction(insn):
@@ -26,6 +26,17 @@ def format_instruction(insn):
         for x in insn.op.imm_struct._meta.fields
     ])
 
+_mutability_str_mapping = {
+    MUTABLE: "mut",
+    IMMUTABLE: ""
+}
+
+def format_mutability(mutability):
+    """Takes a value type `int`, returning its string representation."""
+    try:
+        return _mutability_str_mapping[mutability]
+    except KeyError:
+        raise ValueError('Bad value for value type ({})'.format(mutability))
 
 _lang_type_str_mapping = {
     VAL_TYPE_I32: 'i32',
