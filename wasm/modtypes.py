@@ -90,14 +90,14 @@ class InitExpr(WasmField):
         from .decode import decode_bytecode
 
         offs = 0
-        offset = []
+        instrs = []
         for cur_insn in decode_bytecode(raw):
             offs += cur_insn.len
-            offset.append(cur_insn)
+            instrs.append(cur_insn)
             if cur_insn.op.id == OP_END:
                 break
 
-        return offs, offset, self
+        return offs, instrs, self
 
 
 class GlobalEntry(Structure):
