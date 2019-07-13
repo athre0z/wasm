@@ -2,12 +2,12 @@
 wasm
 ====
 
-Python module capable of decoding and disassembling WebAssembly modules 
+Python module capable of decoding and disassembling WebAssembly modules
 and bytecode, according to the MVP specification of the WASM binary
 format.
 
-As there is no official text format defined yet, the text format 
-implemented doesn't correspond to any existing definition and is a 
+As there is no official text format defined yet, the text format
+implemented doesn't correspond to any existing definition and is a
 simple `mnemonic op1, op2, ...` format. Functions are formatted in a
 way similar to how Google Chrome does in the debug console.
 
@@ -25,11 +25,11 @@ pip install git+https://github.com/athre0z/wasm.git
 
 Parsing a WASM module, printing the types of sections found.
 ```python
-from wasm.decode import decode_module
+from wasm import decode_module
 
 with open('input-samples/hello/hello.wasm', 'rb') as raw:
     raw = raw.read()
-    
+
 mod_iter = iter(decode_module(raw))
 header, header_data = next(mod_iter)
 
@@ -50,9 +50,15 @@ Possible output:
 ```
 Parsing specific sections (eg. GlobalSection, ElementSection, DataSection) in WASM module, printing each section's content:
 ```python
-from wasm.decode import decode_module
-from wasm.formatter import format_instruction, format_lang_type, format_mutability
-from wasm.modtypes import DataSection, ElementSection, GlobalSection
+from wasm import (
+    decode_module,
+    format_instruction,
+    format_lang_type,
+    format_mutability,
+    SEC_DATA,
+    SEC_ELEMENT,
+    SEC_GLOBAL,
+)
 
 with open('input-samples/hello/hello.wasm', 'rb') as raw:
      raw = raw.read()
@@ -61,19 +67,25 @@ mod_iter = iter(decode_module(raw))
 header, header_data = next(mod_iter)
 
 for cur_sec, cur_sec_data in mod_iter:
-    if isinstance(cur_sec_data.get_decoder_meta()['types']['payload'], GlobalSection):
+    if cur_sec_data.id == SEC_GLOBAL:
         print("GlobalSection:")
         for idx, entry in enumerate(cur_sec_data.payload.globals):
-            print(format_mutability(entry.type.mutability), format_lang_type(entry.type.content_type))
+            print(
+                format_mutability(entry.type.mutability),
+                format_lang_type(entry.type.content_type),
+            )
+
             for cur_insn in entry.init:
                 print(format_instruction(cur_insn))
-    if isinstance(cur_sec_data.get_decoder_meta()['types']['payload'], ElementSection):
+
+    if cur_sec_data.id == SEC_ELEMENT:
         print("ElementSection:")
         for idx, entry in enumerate(cur_sec_data.payload.entries):
             print(entry.index, entry.num_elem, entry.elems)
             for cur_insn in entry.offset:
                 print(format_instruction(cur_insn))
-    if isinstance(cur_sec_data.get_decoder_meta()['types']['payload'], DataSection):
+
+    if cur_sec_data.id == SEC_DATA:
         print("DataSection:")
         for idx, entry in enumerate(cur_sec_data.payload.entries):
             print(entry.index, entry.size, entry.data.tobytes())
@@ -89,66 +101,7 @@ end
 mut i32
 get_global 1
 end
-mut i32
-get_global 2
-end
-mut i32
-get_global 3
-end
-mut i32
-get_global 4
-end
-mut i32
-get_global 5
-end
-mut i32
-i32.const 0
-end
-mut i32
-i32.const 0
-end
-mut i32
-i32.const 0
-end
-mut i32
-i32.const 0
-end
-mut f64
-get_global 6
-end
-mut f64
-get_global 7
-end
-mut i32
-i32.const 0
-end
-mut i32
-i32.const 0
-end
-mut i32
-i32.const 0
-end
-mut i32
-i32.const 0
-end
-mut f64
-f64.const 0x0
-end
-mut i32
-i32.const 0
-end
-mut i32
-i32.const 0
-end
-mut i32
-i32.const 0
-end
-mut f64
-f64.const 0x0
-end
-mut i32
-i32.const 0
-end
+...
 mut f32
 f32.const 0x0
 end
@@ -168,9 +121,12 @@ end
 
 Manually disassemble WASM bytecode, printing each instruction.
 ```python
-from wasm.decode import decode_bytecode
-from wasm.formatter import format_instruction
-from wasm.opcodes import INSN_ENTER_BLOCK, INSN_LEAVE_BLOCK
+from wasm import (
+    decode_bytecode,
+    format_instruction,
+    INSN_ENTER_BLOCK,
+    INSN_LEAVE_BLOCK,
+)
 
 raw = bytearray([2, 127, 65, 24, 16, 28, 65, 0, 15, 11])
 indent = 0
@@ -193,10 +149,10 @@ end
 ```
 
 ### `wasmdump` command-line tool
-The module also comes with a simple command-line tool called `wasmdump`, 
-dumping all module struct in sexy tree format. Optionally, it also 
+The module also comes with a simple command-line tool called `wasmdump`,
+dumping all module struct in sexy tree format. Optionally, it also
 disassembles all functions found when invoked with `--disas` (slow).
 
 ### Version support
-The library was successfully tested on Python 2.7, Python 3.5 and 
+The library was successfully tested on Python 2.7, Python 3.7 and
 PyPy 5.4.
