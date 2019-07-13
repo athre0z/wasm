@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-__version__ = '1.1'
+__version__ = '1.2'
 
 from .decode import (
     decode_bytecode,

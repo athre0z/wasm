@@ -5,10 +5,10 @@ from setuptools import setup
 
 setup(
     name='wasm',
-    version='1.1',
+    version='1.2',
     packages=['wasm'],
     url='https://github.com/athre0z/wasm',
-    download_url='https://github.com/athre0z/wasm/archive/v0.1.tar.gz',
+    download_url='https://github.com/athre0z/wasm/archive/v1.2.tar.gz',
     keywords=['wasm', 'disassembler', 'decoder'],
     license='MIT',
     author='Joel Höner',
