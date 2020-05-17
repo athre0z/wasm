@@ -12,7 +12,16 @@ from .decode import decode_module
 def dump():
     parser = argparse.ArgumentParser()
     parser.add_argument('wasm_file', type=str)
-    parser.add_argument('--disas', action='store_true', help="Disassemble code")
+    parser.add_argument(
+        '--disas',
+        action='store_true',
+        help="Disassemble code",
+    )
+    parser.add_argument(
+        '--decode-names',
+        action='store_true',
+        help="Decode name section, if it exists",
+    )
     args = parser.parse_args()
 
     try:
@@ -23,7 +32,10 @@ def dump():
         return
 
     # Parse & print header.
-    mod_iter = iter(decode_module(raw, decode_name_subsections=False))
+    mod_iter = iter(decode_module(
+        raw,
+        decode_name_subsections=args.decode_names,
+    ))
     hdr, hdr_data = next(mod_iter)
     print(hdr.to_string(hdr_data))
 
