@@ -105,6 +105,7 @@ from .wasmtypes import (
     SEC_ELEMENT,
     SEC_CODE,
     SEC_DATA,
+    SEC_DATA_COUNT,
     SEC_NAME,
     LANG_TYPE_I32,
     LANG_TYPE_I64,

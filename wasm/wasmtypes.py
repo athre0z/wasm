@@ -48,6 +48,7 @@ SEC_START = 8
 SEC_ELEMENT = 9
 SEC_CODE = 10
 SEC_DATA = 11
+SEC_DATA_COUNT = 12
 SEC_NAME = b'name'
 
 # Language types.
